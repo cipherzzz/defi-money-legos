@@ -1,0 +1,23 @@
+{
+  "name": "money-lego-example",
+  "version": "1.0.0",
+  "description": "example code using the money legos",
+  "main": "truffle-config.js",
+  "directories": {
+    "example": "examples",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "test"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@studydefi/money-legos": "^2.4.1",
+    "@truffle/hdwallet-provider": "^1.2.1",
+    "dotenv": "^8.2.0",
+    "ethers": "^5.0.24",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.1.3"
+  }
+}
