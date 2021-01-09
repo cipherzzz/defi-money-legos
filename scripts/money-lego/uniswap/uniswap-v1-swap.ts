@@ -2,16 +2,15 @@ const { ethers } = require("ethers");
 const { legos } = require("@studydefi/money-legos");
 require('dotenv').config();
 
-const NETWORK = "ropsten";
+const NETWORK = process.env.NETWORK;
 const PROJECT_ID = process.env.INFURA_ID // Replace this with your own Project ID
-const provider = new ethers.getDefaultProvider(NETWORK, {'infura': PROJECT_ID});
+const gasLimit = process.env.GAS_LIMIT;
+const provider = ethers.getDefaultProvider(NETWORK, {'infura': PROJECT_ID});
 
 const wallet = new ethers.Wallet(
   process.env.DEV_PK, // Default private key for ganache-cli -d
   provider,
 );
-
-const gasLimit = process.env.GAS_LIMIT;
 
 //Ropsten
 legos.uniswap.factory.address = "0x9c83dCE8CA20E9aAF9D3efc003b2ea62aBC08351"
