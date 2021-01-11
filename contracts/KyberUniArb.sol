@@ -8,20 +8,14 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 
 contract KyberUniArb is Ownable {
+    
+    address constant KyberNetworkProxyAddress = 0x818E6FECD516Ecc3849DAf6845e3EC868087B755;
+    address constant UniswapFactoryAddress = 0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95;
 
     IUniswapFactory private uniswapFactory;
     KyberNetworkProxy private kyberNetworkProxy;
     
     enum Exchanges{ KYBER, UNISWAPV1 }
-
-    constructor(address uniswapFactoryAddress, address kyberNetworkProxyAddress) public onlyOwner {
-      
-      // Instantiate UniswapFactory
-      uniswapFactory = IUniswapFactory(uniswapFactoryAddress);
-
-      // Instantiate KyberNetworkProxy
-      kyberNetworkProxy = KyberNetworkProxy(kyberNetworkProxyAddress);
-    }
     
     /*Uniswap Begin */
     function _getUniswapExchange(address tokenAddress) internal view returns (address) {
@@ -69,8 +63,39 @@ contract KyberUniArb is Ownable {
     }
     
     
-    function executeArbitrage(address[4] memory pairs, uint8[2] memory exchanges, uint tradeAmount) public payable onlyOwner{
+    function executeArbitrage(address fromToken, address toToken, uint fromExchange, uint toExchange, uint tradeAmount) public payable onlyOwner{
       
+      // Instantiate UniswapFactory
+      uniswapFactory = IUniswapFactory(UniswapFactoryAddress);
+
+      // Instantiate KyberNetworkProxy
+      kyberNetworkProxy = KyberNetworkProxy(KyberNetworkProxyAddress);
+      
+      // Initial Trade
+      uint firstTradeAmount;
+      if(fromExchange == uint(Exchanges.KYBER)) {
+        firstTradeAmount = _tokenToTokenKyber(fromToken, toToken, tradeAmount);
+      } else if(fromExchange == uint(Exchanges.UNISWAPV1)) {
+        firstTradeAmount = _tokenToTokenUniswapV1(fromToken, toToken, tradeAmount);
+      } else { 
+        require(false, "No initial exchange specified");
+      }
+      
+      // Secondary Trade
+    //   uint secondTradeAmount;
+    //   if(exchanges[1] == uint(Exchanges.KYBER)) {
+    //     secondTradeAmount = _tokenToTokenKyber(pairs[1], pairs[0], firstTradeAmount);
+    //   } else if(exchanges[1] == uint(Exchanges.UNISWAPV1)) {
+    //     secondTradeAmount = _tokenToTokenUniswapV1(pairs[1], pairs[0], firstTradeAmount);
+    //   } else {
+    //     require(false, "No secondary exchange specified");
+    //   }
+      
+    //   require(secondTradeAmount > firstTradeAmount, "No Profit");
+      
+    //   // Transfer back to sender
+    //   IERC20 token = IERC20(pairs[0]);
+    //   token.transfer(msg.sender, secondTradeAmount);
     }
 
 }

@@ -3,23 +3,11 @@ import { legos } from '@studydefi/money-legos';
 
 const env = require('dotenv').config();
 
-const NETWORK = process.env.NETWORK;
-const PROJECT_ID = process.env.INFURA_ID // Replace this with your own Project ID
 const gasLimit = process.env.GAS_LIMIT;
-const provider = ethers.getDefaultProvider(NETWORK, {'infura': PROJECT_ID});
+const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL)
+const wallet = ethers.Wallet.fromMnemonic( process.env.MNEMONIC).connect(provider);
 
-const wallet = new ethers.Wallet(
-  process.env.DEV_PK, // Default private key for ganache-cli -d
-  provider,
-);
-
-//ropsten
-legos.kyber.network.address = "0x818E6FECD516Ecc3849DAf6845e3EC868087B755"
-legos.erc20.eth.address = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-legos.erc20.dai.address = "0xaD6D458402F60fD3Bd25163575031ACDce07538D"
-legos.erc20.bat.address = "0xDb0040451F373949A4Be60dcd7b6B8D6E42658B6"
-
-const swapOnKyber = async (fromAddress, toAddress, fromAmountWei) => {
+const swapOnKyber = async (fromAddress: string, toAddress: string, fromAmountWei: any) => {
   // Don't swap
   if (fromAddress === toAddress) {
     return fromAmountWei;
@@ -76,7 +64,7 @@ const swapOnKyber = async (fromAddress, toAddress, fromAmountWei) => {
   );
 };
 
-const swapAndLog = async (fromToken, toToken, amount) => {
+const swapAndLog = async (fromToken: any, toToken: any, amount: number) => {
   console.log(`Swapping ${amount} ${fromToken.symbol} to ${toToken.symbol}`);
 
   let tx = await swapOnKyber(
@@ -111,9 +99,9 @@ const swapAndLog = async (fromToken, toToken, amount) => {
 };
 
 const main = async () => {
-  //await swapAndLog(legos.erc20.eth, legos.erc20.dai, .01);
-  // await swapAndLog(legos.erc20.dai, legos.erc20.bat, 50);
-   await swapAndLog(legos.erc20.bat, legos.erc20.eth, 1500);
+  await swapAndLog(legos.erc20.eth, legos.erc20.dai, .01);
+  await swapAndLog(legos.erc20.dai, legos.erc20.bat, 10);
+  await swapAndLog(legos.erc20.bat, legos.erc20.eth, 30);
 };
 
 main();
