@@ -10,7 +10,7 @@ const gasLimit = process.env.GAS_LIMIT;
 const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL)
 const wallet = ethers.Wallet.fromMnemonic( process.env.MNEMONIC).connect(provider);
 
-const arbContract = new ethers.Contract(KyberUniArbInterface.networks[1].address, KyberUniArbInterface.abi, wallet);
+const arbContract = new ethers.Contract(KyberUniArbInterface.networks[process.env.NETWORK_ID].address, KyberUniArbInterface.abi, wallet);
 
 async function executeArb (fromToken: string, toToken: string, fromExchange: number, toExchange: number, tokenAmount: any) {
     let tx = await arbContract.executeArbitrage(fromToken, toToken, fromExchange, toExchange, parseEther(tokenAmount), { gasLimit } );

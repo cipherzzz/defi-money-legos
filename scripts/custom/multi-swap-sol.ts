@@ -11,10 +11,10 @@ const gasLimit = process.env.GAS_LIMIT;
 const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL)
 const wallet = ethers.Wallet.fromMnemonic( process.env.MNEMONIC).connect(provider);
 
-const kyberSwap = new ethers.Contract(KyberSwapInterface.networks[3].address, KyberSwapInterface.abi, wallet);
+const kyberSwap = new ethers.Contract(KyberSwapInterface.networks[process.env.NETWORK_ID].address, KyberSwapInterface.abi, wallet);
 async function swapEtherForTokenOnKyber (destinationToken, sourceTokenAmount) {
 
-    let tx = await kyberSwap.ethToToken(destinationToken, {value: parseEther(sourceTokenAmount),} )
+    let tx = await kyberSwap.ethToToken(destinationToken, {value: parseEther(sourceTokenAmount), gasLimit} )
     let receipt = await tx.wait();
     console.log("Kyber Tx Hash: ", receipt.transactionHash);
     
@@ -22,7 +22,7 @@ async function swapEtherForTokenOnKyber (destinationToken, sourceTokenAmount) {
 
 
 
-const uniswapV1 = new ethers.Contract(UniswapV1Interface.networks[3].address, UniswapV1Interface.abi, wallet);
+const uniswapV1 = new ethers.Contract(UniswapV1Interface.networks[process.env.NETWORK_ID].address, UniswapV1Interface.abi, wallet);
 async function swapEtherForTokenOnUniswapV1 (destinationToken, sourceTokenAmount) {
 
     let tx = await uniswapV1.ethToToken(destinationToken, {value: parseEther(sourceTokenAmount), gasLimit} )
