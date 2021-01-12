@@ -63,7 +63,8 @@ contract KyberUniArb is Ownable {
     }
     
     
-    function executeArbitrage(address fromToken, address toToken, uint fromExchange, uint toExchange, uint tradeAmount) public payable onlyOwner{
+    function executeArbitrage(address fromToken, address toToken, uint fromExchange, uint toExchange, uint tradeAmount) 
+    public payable onlyOwner{
       
       // Instantiate UniswapFactory
       uniswapFactory = IUniswapFactory(UniswapFactoryAddress);

@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract UniswapV1 {
     // Uniswap Ropsten factory address
-    address constant UniswapFactoryAddress = 0x9c83dCE8CA20E9aAF9D3efc003b2ea62aBC08351;
+    address constant UniswapFactoryAddress = 0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95;
 
     function _getUniswapExchange(address tokenAddress) internal view returns (address) {
         return IUniswapFactory(UniswapFactoryAddress).getExchange(tokenAddress);

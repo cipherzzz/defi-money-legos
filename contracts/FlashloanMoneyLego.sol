@@ -48,7 +48,8 @@ contract FlashloanMoneyLego is FlashLoanReceiverBase {
         uint _fee,
         bytes calldata _params
     ) external {
-        require(_amount <= getBalanceInternal(address(this), _reserve), "Invalid balance, was the flashLoan successful?");
+        require(_amount <= getBalanceInternal(address(this), _reserve), 
+        "Invalid balance, was the flashLoan successful?");
 
         address RESERVE_ADDRESS = _reserve;
         uint256 deadline = now + 3000;

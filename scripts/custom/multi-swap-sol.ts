@@ -32,7 +32,7 @@ async function swapEtherForTokenOnUniswapV1 (destinationToken, sourceTokenAmount
 }
 
 const main = async () => {
-  await swapEtherForTokenOnKyber(legos.erc20.dai.address, ".1");
+  //await swapEtherForTokenOnKyber(legos.erc20.dai.address, ".1");
   await swapEtherForTokenOnUniswapV1(legos.erc20.bat.address, ".1")
 };
 

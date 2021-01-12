@@ -17,7 +17,7 @@
  * phrase from a file you've .gitignored so it doesn't accidentally become public.
  *
  */
-const { toHex, toWei } = require("web3-utils");
+ 
 require('dotenv').config();
 const HDWalletProvider = require('@truffle/hdwallet-provider');
 
@@ -38,13 +38,15 @@ module.exports = {
    * $ truffle test --network <network-name>
    */
 
+/*eslint-disable */
   networks: {
     development: {
-      provider: () => new HDWalletProvider(process.env.MNEMONIC, process.env.PROVIDER_URL),
-      network_id: Number(process.env.NETWORK_ID),   // This network is yours, in the cloud.
+      provider: () => new HDWalletProvider(process.env.MNEMONIC, process.env.PROVIDER_URL), 
+      network_id: Number(process.env.NETWORK_ID),   // This network is yours, in the cloud. 
       production: true    // Treats this network as if it was a public net. (default: false)
     }
   },
+  /*eslint-enable */
 
   // Set default mocha options here, use special reporters etc.
   mocha: {
