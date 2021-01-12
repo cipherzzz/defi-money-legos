@@ -1,16 +1,15 @@
-const { ethers } = require("ethers");
-const { legos } = require("@studydefi/money-legos");
+const { ethers } = require('ethers');
+const { legos } = require('@studydefi/money-legos');
 require('dotenv').config();
 
 const gasLimit = process.env.GAS_LIMIT;
-const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL)
-const wallet = ethers.Wallet.fromMnemonic( process.env.MNEMONIC).connect(provider);
+const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL);
+const wallet = ethers.Wallet.fromMnemonic(process.env.MNEMONIC).connect(provider);
 
 const newExchangeContract = (address) =>
   new ethers.Contract(address, legos.uniswap.exchange.abi, wallet);
 
-const newTokenContract = (address) =>
-  new ethers.Contract(address, legos.erc20.abi, wallet);
+const newTokenContract = (address) => new ethers.Contract(address, legos.erc20.abi, wallet);
 
 const uniswapFactory = new ethers.Contract(
   legos.uniswap.factory.address,
@@ -73,36 +72,29 @@ const swapOnUniswap = async (fromAddress: string, toAddress: string, fromAmountW
 const swapAndLog = async (fromToken: any, toToken: any, amount: any) => {
   console.log(`Swapping ${amount} ${fromToken.symbol} to ${toToken.symbol}`);
 
-  let tx = await swapOnUniswap(
+  const tx = await swapOnUniswap(
     fromToken.address,
     toToken.address,
     ethers.utils.parseUnits(amount.toString(), fromToken.decimals)
   );
-  
-  let receipt = await tx.wait()
-  console.log("tx: ", receipt.transactionHash)
+
+  const receipt = await tx.wait();
+  console.log('tx: ', receipt.transactionHash);
 
   if (toToken === legos.erc20.eth) {
     const ethBalWei = await wallet.getBalance();
-    console.log(
-      `${toToken.symbol} balance: ${ethers.utils.formatEther(ethBalWei)}`
-    );
+    console.log(`${toToken.symbol} balance: ${ethers.utils.formatEther(ethBalWei)}`);
     return;
   }
 
-  const repBal = await newTokenContract(toToken.address).balanceOf(
-    wallet.address
-  );
+  const repBal = await newTokenContract(toToken.address).balanceOf(wallet.address);
   console.log(
-    `New ${toToken.symbol} balance: ${ethers.utils.formatUnits(
-      repBal,
-      toToken.decimals
-    )}`
+    `New ${toToken.symbol} balance: ${ethers.utils.formatUnits(repBal, toToken.decimals)}`
   );
 };
 
 const main = async () => {
-  await swapAndLog(legos.erc20.eth, legos.erc20.dai, .1);
+  await swapAndLog(legos.erc20.eth, legos.erc20.dai, 0.1);
   await swapAndLog(legos.erc20.dai, legos.erc20.bat, 10);
   await swapAndLog(legos.erc20.bat, legos.erc20.eth, 5);
 };
