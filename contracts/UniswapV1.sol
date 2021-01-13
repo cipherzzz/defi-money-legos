@@ -121,4 +121,10 @@ contract UniswapV1 {
         uint256 tokensAmount = _ethToToken(tokenAddress, msg.value);
         token.transfer(msg.sender, tokensAmount);
     }
+    
+    function tokenToToken(address fromAddress, address toAddress, uint256 fromAmount) public payable {
+        IERC20 toToken = IERC20(toAddress);
+        uint256 tokensAmount = _tokenToToken(fromAddress, toAddress, fromAmount);
+        toToken.transfer(msg.sender, tokensAmount);
+    }
 }

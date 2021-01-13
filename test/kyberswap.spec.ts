@@ -1,7 +1,7 @@
 describe('KyberSwap', async function () {
   let { legos } = require('@studydefi/money-legos');
   let { Contract, ethers, B } = require('ethers');
-  let { parseEther, formatUnits, parseUnits } = ethers.utils;
+  let { parseEther, formatUnits, parseUnits, BigNumber } = ethers.utils;
 
   const assert = require('assert').strict;
 
@@ -33,4 +33,6 @@ describe('KyberSwap', async function () {
       'Expected die balance after transfer to be greater'
     );
   });
+  
+  
 });

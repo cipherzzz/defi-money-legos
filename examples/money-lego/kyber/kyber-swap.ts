@@ -79,8 +79,8 @@ const swapAndLog = async (fromToken: any, toToken: any, amount: number) => {
 
 const main = async () => {
   // await swapAndLog(legos.erc20.eth, legos.erc20.dai, .01);
-  // await swapAndLog(legos.erc20.dai, legos.erc20.bat, 80000);
-  await swapAndLog(legos.erc20.bat, legos.erc20.eth, 334050);
+   await swapAndLog(legos.erc20.dai, legos.erc20.bat, 10);
+  //await swapAndLog(legos.erc20.bat, legos.erc20.eth, 334050);
 };
 
 main();

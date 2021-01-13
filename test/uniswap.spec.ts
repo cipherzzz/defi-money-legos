@@ -23,7 +23,6 @@ describe('UniswapV1', async function () {
     const daiBalanceBefore = await dai.balanceOf(wallet.address);
 
     let ether = await wallet.getBalance();
-    console.log('eth: ', formatEther(ether));
     let tx = await contract.ethToToken(legos.erc20.dai.address, {
       value: parseEther('.1'),
       gasLimit,
@@ -35,4 +34,5 @@ describe('UniswapV1', async function () {
       'Expected die balance after transfer to be greater'
     );
   });
+  
 });
