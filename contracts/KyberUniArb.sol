@@ -1,79 +1,72 @@
 pragma solidity ^0.5.0;
 
 import '@studydefi/money-legos/kyber/contracts/KyberNetworkProxy.sol';
-import '@studydefi/money-legos/uniswap/contracts/IUniswapExchange.sol';
-import '@studydefi/money-legos/uniswap/contracts/IUniswapFactory.sol';
+
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/ownership/Ownable.sol';
 
+interface OrFeedInterface {
+  function getExchangeRate ( string calldata fromSymbol, string calldata  toSymbol, string calldata venue, uint256 amount ) external view returns ( uint256 );
+  function getTokenDecimalCount ( address tokenAddress ) external view returns ( uint256 );
+  function getTokenAddress ( string calldata  symbol ) external view returns ( address );
+  function getSynthBytes32 ( string calldata  symbol ) external view returns ( bytes32 );
+  function getForexAddress ( string calldata symbol ) external view returns ( address );
+  function arb(address  fundsReturnToAddress,  address liquidityProviderContractAddress, string[] calldata   tokens,  uint256 amount, string[] calldata  exchanges) external payable returns (bool);
+}
+
+interface IUniswapV2 {
+    function swapExactETHForTokens(
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable returns (uint256[] memory amounts);
+    
+    
+    function swapTokensForExactTokens(
+        uint amountOut,
+        uint amountInMax,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+}
+
 contract KyberUniArb is Ownable {
     address constant KyberNetworkProxyAddress = 0x818E6FECD516Ecc3849DAf6845e3EC868087B755;
-    address constant UniswapFactoryAddress = 0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95;
-
-    IUniswapFactory private uniswapFactory;
+    address constant UniswapRouterAddress = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
+    address constant OrFeedAddress = 0x8316B082621CFedAB95bf4a44a1d4B64a6ffc336;
+    
+    IUniswapV2 private uniswap;
     KyberNetworkProxy private kyberNetworkProxy;
-
-    enum Exchanges {KYBER, UNISWAPV1}
-
-    /*Uniswap Begin */
-    function _getUniswapExchange(address tokenAddress) internal view returns (address) {
-        return uniswapFactory.getExchange(tokenAddress);
+    OrFeedInterface private orfeed;
+    
+    constructor() public {
+        uniswap = IUniswapV2(UniswapRouterAddress);
+        kyberNetworkProxy = KyberNetworkProxy(KyberNetworkProxyAddress);
+        orfeed = OrFeedInterface(OrFeedAddress);
     }
 
-    function _ethToToken(address tokenAddress, uint256 ethAmount) internal returns (uint256) {
-        return _ethToToken(tokenAddress, ethAmount, uint256(1));
-    }
+    enum Exchanges {KYBER, UNISWAPV2}
 
-    function _ethToToken(
-        address tokenAddress,
-        uint256 ethAmount,
-        uint256 minTokenAmount
+    function _tokenToTokenUniswapV2(
+        address tokenIn,
+        uint256 amountInMax,
+        address tokenOut,
+        uint256 amountOut,
+        uint256 deadline
     ) internal returns (uint256) {
-        return
-            IUniswapExchange(_getUniswapExchange(tokenAddress)).ethToTokenSwapInput.value(
-                ethAmount
-            )(minTokenAmount, uint256(now + 60));
-    }
 
-    function _tokenToEth(address tokenAddress, uint256 tokenAmount) internal returns (uint256) {
-        return _tokenToEth(tokenAddress, tokenAmount, uint256(1));
-    }
+        require(IERC20(tokenIn).approve(address(uniswap), amountInMax), 'approve uniswap failed.');
 
-    function _tokenToEth(
-        address tokenAddress,
-        uint256 tokenAmount,
-        uint256 minEthAmount
-    ) internal returns (uint256) {
-        address exchange = _getUniswapExchange(tokenAddress);
-        IERC20(tokenAddress).approve(exchange, tokenAmount);
-        return
-            IUniswapExchange(exchange).tokenToEthSwapInput(
-                tokenAmount,
-                minEthAmount,
-                uint256(now + 60)
-            );
-    }
+        address[] memory path = new address[](2);
+        path[0] = tokenIn;
+        path[1] = tokenOut;
 
-    function _tokenToToken(
-        address from,
-        address to,
-        uint256 tokenInAmount,
-        uint256 minTokenOut
-    ) internal returns (uint256) {
-        uint256 ethAmount = _tokenToEth(from, tokenInAmount);
-        return _ethToToken(to, ethAmount, minTokenOut);
+        uint[] memory amounts = uniswap.swapTokensForExactTokens(amountOut, amountInMax, path, msg.sender, deadline);
+        return amounts[1];
     }
-
-    function _tokenToTokenUniswapV1(
-        address from,
-        address to,
-        uint256 tokenAmount
-    ) internal returns (uint256) {
-        return _tokenToToken(from, to, tokenAmount, uint256(1));
-    }
-
-    /* Uniswap end  */
 
     /* Kyber - so much easier  */
     function _tokenToTokenKyber(
@@ -81,13 +74,19 @@ contract KyberUniArb is Ownable {
         address destination,
         uint256 tokenAmount
     ) internal returns (uint256) {
-        IERC20(source).approve(address(kyberNetworkProxy), tokenAmount);
+        
+        uint minConversionRate;
+        (minConversionRate,) = kyberNetworkProxy.getExpectedRate(IERC20(source), IERC20(destination), tokenAmount);
+        
+        require(IERC20(source).transferFrom(msg.sender, address(this), tokenAmount));
+        require(IERC20(source).approve(address(kyberNetworkProxy), 0));
+        require(IERC20(source).approve(address(kyberNetworkProxy), tokenAmount));
         return
             kyberNetworkProxy.swapTokenToToken(
                 IERC20(source),
                 tokenAmount,
                 IERC20(destination),
-                uint256(1)
+                minConversionRate
             );
     }
 
@@ -96,38 +95,34 @@ contract KyberUniArb is Ownable {
         address toToken,
         uint256 fromExchange,
         uint256 toExchange,
-        uint256 tradeAmount
+        uint256 tradeAmount,
+        uint256 slippage
     ) public payable onlyOwner {
-        // Instantiate UniswapFactory
-        uniswapFactory = IUniswapFactory(UniswapFactoryAddress);
-
-        // Instantiate KyberNetworkProxy
-        kyberNetworkProxy = KyberNetworkProxy(KyberNetworkProxyAddress);
 
         // Initial Trade
         uint256 firstTradeAmount;
         if (fromExchange == uint256(Exchanges.KYBER)) {
             firstTradeAmount = _tokenToTokenKyber(fromToken, toToken, tradeAmount);
-        } else if (fromExchange == uint256(Exchanges.UNISWAPV1)) {
-            firstTradeAmount = _tokenToTokenUniswapV1(fromToken, toToken, tradeAmount);
+        } else if (fromExchange == uint256(Exchanges.UNISWAPV2)) {
+            firstTradeAmount = _tokenToTokenUniswapV2(fromToken, tradeAmount, toToken,  tradeAmount*3, block.timestamp);
         } else {
             require(false, 'No initial exchange specified');
         }
 
         // Secondary Trade
-        //   uint secondTradeAmount;
-        //   if(exchanges[1] == uint(Exchanges.KYBER)) {
-        //     secondTradeAmount = _tokenToTokenKyber(pairs[1], pairs[0], firstTradeAmount);
-        //   } else if(exchanges[1] == uint(Exchanges.UNISWAPV1)) {
-        //     secondTradeAmount = _tokenToTokenUniswapV1(pairs[1], pairs[0], firstTradeAmount);
-        //   } else {
-        //     require(false, "No secondary exchange specified");
-        //   }
+          uint secondTradeAmount;
+          if(toExchange == uint(Exchanges.KYBER)) {
+            secondTradeAmount = _tokenToTokenKyber(toToken, fromToken, firstTradeAmount);
+          } else if(toExchange == uint(Exchanges.UNISWAPV2)) {
+            secondTradeAmount = _tokenToTokenUniswapV2(toToken, firstTradeAmount, fromToken, tradeAmount/3, block.timestamp);
+          } else {
+            require(false, "No secondary exchange specified");
+          }
 
-        //   require(secondTradeAmount > firstTradeAmount, "No Profit");
+          require(secondTradeAmount > firstTradeAmount, "No Profit");
 
-        //   // Transfer back to sender
-        //   IERC20 token = IERC20(pairs[0]);
-        //   token.transfer(msg.sender, secondTradeAmount);
+        // Transfer back to sender
+          IERC20 token = IERC20(fromToken);
+          token.transfer(msg.sender, secondTradeAmount);
     }
 }

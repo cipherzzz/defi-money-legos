@@ -8,8 +8,8 @@
   },
   "scripts": {
     "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'test/**/*.ts' --timeout 10000",
-    "prettier:solidity": "npx prettier --write contracts/**/*.sol",
-    "prettier:ts": "npx prettier --write --config ./.prettierrc './**/*.ts'"
+    "prettier": "npx prettier --write contracts/**/*.sol && npx prettier --write --config ./.prettierrc './**/*.ts'",
+    "nuke": "rm -rf build && npx truffle compile && npx truffle migrate --reset"
   },
   "author": "",
   "license": "ISC",
