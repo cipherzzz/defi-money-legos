@@ -34,5 +34,4 @@ describe('UniswapV1', async function () {
       'Expected die balance after transfer to be greater'
     );
   });
-  
 });

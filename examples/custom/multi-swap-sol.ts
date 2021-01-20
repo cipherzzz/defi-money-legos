@@ -19,7 +19,7 @@ const kyberSwap = new ethers.Contract(
 async function swapEtherForTokenOnKyber(destinationToken, sourceTokenAmount) {
   const tx = await kyberSwap.ethToToken(destinationToken, {
     value: parseEther(sourceTokenAmount),
-    gasLimit
+    gasLimit,
   });
   const receipt = await tx.wait();
   console.log('Kyber Tx Hash: ', receipt.transactionHash);

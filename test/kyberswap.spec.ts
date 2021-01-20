@@ -33,6 +33,4 @@ describe('KyberSwap', async function () {
       'Expected die balance after transfer to be greater'
     );
   });
-  
-  
 });

@@ -13,81 +13,95 @@ const ethers = require('ethers');
 const { parseUnits, formatUnits } = ethers.utils;
 require('dotenv').config();
 
-const chainId = ChainId.MAINNET;
-const tokenAddress = '0x6b175474e89094c44da98b954eedeac495271d0f';
+let provider, signer, account, address, deadline, uniswap, kyber, BAT, DAI;
 
-const init = async () => {
-  const amountInEth = '.1';
-  const amountInWei = parseUnits(amountInEth, 18);
+async function swapTokensOnKyber(tokenIn, amountIn, tokenOut) {
+  let amtBefore = await tokenOut.balanceOf(account.address);
 
-  const dai = await Fetcher.fetchTokenData(chainId, tokenAddress);
-  const weth = WETH[chainId];
-  const pair = await Fetcher.fetchPairData(dai, weth);
-  const route = new Route([pair], weth);
-  const trade = new Trade(
-    route,
-    new TokenAmount(weth, parseUnits(amountInEth), 18),
-    TradeType.EXACT_INPUT
+  const { slippageRate } = await kyber.getExpectedRate(tokenIn.address, tokenOut.address, amountIn);
+
+  console.log('kyber bat/die: ', formatUnits(slippageRate, 18));
+
+  // Need to approve transferFrom
+  await tokenIn.approve(kyber.address, amountIn);
+
+  // Token -> Token
+  const tx = await kyber.swapTokenToToken(
+    tokenIn.address,
+    amountIn,
+    tokenOut.address,
+    slippageRate,
+    {
+      gasLimit: process.env.GAS_LIMIT,
+    }
   );
-  console.log('dai per weth: ', route.midPrice.toSignificant(6));
-  console.log('weth per dai: ', route.midPrice.invert().toSignificant(6));
-  console.log('execution price: ', trade.executionPrice.toSignificant(6));
-  console.log('next midprice: ', trade.nextMidPrice.toSignificant(6));
+  const receipt = await tx.wait();
 
-  const slippageTolerance = new Percent('25', '100'); // 1 bip = 0.001 % - so 50 bips would be .05 %
-  const amountOutMin = trade.minimumAmountOut(slippageTolerance).raw.toString();
-  const path = [weth.address, dai.address];
-  const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
-  const value = trade.inputAmount.raw.toString();
+  let amtAfter = await tokenOut.balanceOf(account.address);
+  let amountOut = amtAfter.sub(amtBefore);
+  return amountOut;
+}
 
-  console.log(`Amount paid in Eth: ${amountInEth}`);
-  console.log(`Minimum amount in dai: ${formatUnits(amountOutMin, 18)}`);
+async function swapTokensOnUniswapV2(tokenIn, amountIn, tokenOut) {
+  let amtBefore = await tokenOut.balanceOf(account.address);
 
-  let provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL);
-  const signer = ethers.Wallet.fromMnemonic(process.env.MNEMONIC);
-  const account = signer.connect(provider);
-  const address = account.address;
-  const uniswap = new ethers.Contract(
+  // *** very important ****
+  await tokenIn.approve(uniswap.address, amountIn);
+
+  const newPath = [tokenIn.address, tokenOut.address];
+  const amounts = await uniswap.getAmountsOut(amountIn, newPath);
+
+  const tokenOutAmount = amounts[1];
+  console.log('uniswap die/bat: ', formatUnits(amounts[1], 18));
+
+  const tx = await uniswap.swapTokensForExactTokens(
+    amounts[1],
+    amounts[0],
+    newPath,
+    address,
+    deadline,
+    {
+      gasLimit: process.env.GAS_LIMIT,
+      gasPrice: 20e9,
+    }
+  );
+  const receipt = await tx.wait();
+
+  let amtAfter = await tokenOut.balanceOf(account.address);
+  let amountOut = amtAfter.sub(amtBefore);
+  return amountOut;
+}
+
+async function init() {
+  provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL);
+  signer = ethers.Wallet.fromMnemonic(process.env.MNEMONIC);
+  account = signer.connect(provider);
+  address = account.address;
+  deadline = Math.floor(Date.now() / 1000) + 60 * 20;
+  uniswap = new ethers.Contract(
     process.env.UNISWAPV2_ROUTER_ADDRESS,
     [
       'function swapTokensForExactTokens(uint amountOut, uint amountIn, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)',
-      'function getAmountsOut(uint256 amountIn, address[] calldata path) external view returns (uint256[] memory amounts)'
+      'function getAmountsOut(uint256 amountIn, address[] calldata path) external view returns (uint256[] memory amounts)',
     ],
     account
   );
-  
-  const BAT = new ethers.Contract(
-  legos.erc20.bat.address,
-  legos.erc20.bat.abi,
-  account
-);
 
-const DAI = new ethers.Contract(
-  legos.erc20.dai.address,
-  legos.erc20.dai.abi,
-  account
-);
-  
-  let daiBalance = await DAI.balanceOf(account.address);
-  console.log("daiBalance before: ", formatUnits(daiBalance, 18));
-  
-  const newAmount = parseUnits('100', 18);
-  await DAI.approve(uniswap.address, newAmount);
-  
-  const newPath = [legos.erc20.dai.address, legos.erc20.bat.address]
-  const amounts = await uniswap.getAmountsOut(newAmount, newPath);
-  console.log("amount 0", formatUnits(amounts[0], 18));
-  console.log("amount 1", formatUnits(amounts[1], 18));
-  
-  const tx = await uniswap.swapTokensForExactTokens(amounts[1], amounts[0], newPath, address, deadline, {
-    value: value,
-    gasLimit: process.env.GAS_LIMIT,
-    gasPrice: 20e9,
-  });
-  console.log(`Tx Hash: ${tx.hash}`);
+  kyber = new ethers.Contract(legos.kyber.network.address, legos.kyber.network.abi, account);
 
-  const receipt = await tx.wait();
-  console.log(`Tx was processed in block: ${receipt.blockNumber}`);
-};
+  BAT = new ethers.Contract(legos.erc20.bat.address, legos.erc20.bat.abi, account);
+  DAI = new ethers.Contract(legos.erc20.dai.address, legos.erc20.dai.abi, account);
+}
 
-init();
+async function executeArb() {
+  init();
+  const amountIn = parseUnits('100', 18);
+  let amtBefore = await DAI.balanceOf(account.address);
+  const amountOutUni = await swapTokensOnUniswapV2(DAI, amountIn, BAT);
+  const amountOutKyber = await swapTokensOnKyber(BAT, amountOutUni, DAI);
+
+  console.log('Amount In:', formatUnits(amountIn, 18));
+  console.log('Amount Out:', formatUnits(amountOutKyber, 18));
+}
+
+executeArb();
