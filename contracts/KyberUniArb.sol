@@ -1,21 +1,18 @@
 pragma solidity ^0.5.0;
+pragma experimental ABIEncoderV2;
 
 import '@studydefi/money-legos/kyber/contracts/KyberNetworkProxy.sol';
-
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/ownership/Ownable.sol';
 
-interface OrFeedInterface {
-  function getExchangeRate ( string calldata fromSymbol, string calldata  toSymbol, string calldata venue, uint256 amount ) external view returns ( uint256 );
-  function getTokenDecimalCount ( address tokenAddress ) external view returns ( uint256 );
-  function getTokenAddress ( string calldata  symbol ) external view returns ( address );
-  function getSynthBytes32 ( string calldata  symbol ) external view returns ( bytes32 );
-  function getForexAddress ( string calldata symbol ) external view returns ( address );
-  function arb(address  fundsReturnToAddress,  address liquidityProviderContractAddress, string[] calldata   tokens,  uint256 amount, string[] calldata  exchanges) external payable returns (bool);
-}
-
 interface IUniswapV2 {
+    
+    function getAmountsOut(uint256 amountIn, address[] calldata path)
+        external
+        view
+        returns (uint256[] memory amounts);
+    
     function swapExactETHForTokens(
         uint256 amountOutMin,
         address[] calldata path,
@@ -24,9 +21,9 @@ interface IUniswapV2 {
     ) external payable returns (uint256[] memory amounts);
     
     
-    function swapTokensForExactTokens(
-        uint amountOut,
-        uint amountInMax,
+    function swapExactTokensForTokens(
+        uint amountIn,
+        uint amountOutMin,
         address[] calldata path,
         address to,
         uint deadline
@@ -36,35 +33,32 @@ interface IUniswapV2 {
 contract KyberUniArb is Ownable {
     address constant KyberNetworkProxyAddress = 0x818E6FECD516Ecc3849DAf6845e3EC868087B755;
     address constant UniswapRouterAddress = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-    address constant OrFeedAddress = 0x8316B082621CFedAB95bf4a44a1d4B64a6ffc336;
-    
+
     IUniswapV2 private uniswap;
     KyberNetworkProxy private kyberNetworkProxy;
-    OrFeedInterface private orfeed;
-    
+
     constructor() public {
         uniswap = IUniswapV2(UniswapRouterAddress);
         kyberNetworkProxy = KyberNetworkProxy(KyberNetworkProxyAddress);
-        orfeed = OrFeedInterface(OrFeedAddress);
     }
 
     enum Exchanges {KYBER, UNISWAPV2}
 
     function _tokenToTokenUniswapV2(
         address tokenIn,
-        uint256 amountInMax,
+        uint256 amountIn,
         address tokenOut,
-        uint256 amountOut,
         uint256 deadline
     ) internal returns (uint256) {
 
-        require(IERC20(tokenIn).approve(address(uniswap), amountInMax), 'approve uniswap failed.');
+        require(IERC20(tokenIn).approve(address(uniswap), 100), 'approve uniswap failed.');
 
         address[] memory path = new address[](2);
         path[0] = tokenIn;
         path[1] = tokenOut;
-
-        uint[] memory amounts = uniswap.swapTokensForExactTokens(amountOut, amountInMax, path, msg.sender, deadline);
+        
+        uint[] memory calcAmounts = uniswap.getAmountsOut(amountIn,path);
+        uint[] memory amounts = uniswap.swapExactTokensForTokens(calcAmounts[0], calcAmounts[1], path, address(this), deadline);
         return amounts[1];
     }
 
@@ -95,8 +89,7 @@ contract KyberUniArb is Ownable {
         address toToken,
         uint256 fromExchange,
         uint256 toExchange,
-        uint256 tradeAmount,
-        uint256 slippage
+        uint256 tradeAmount
     ) public payable onlyOwner {
 
         // Initial Trade
@@ -104,7 +97,7 @@ contract KyberUniArb is Ownable {
         if (fromExchange == uint256(Exchanges.KYBER)) {
             firstTradeAmount = _tokenToTokenKyber(fromToken, toToken, tradeAmount);
         } else if (fromExchange == uint256(Exchanges.UNISWAPV2)) {
-            firstTradeAmount = _tokenToTokenUniswapV2(fromToken, tradeAmount, toToken,  tradeAmount*3, block.timestamp);
+            firstTradeAmount = _tokenToTokenUniswapV2(fromToken, tradeAmount, toToken, block.timestamp);
         } else {
             require(false, 'No initial exchange specified');
         }
@@ -114,12 +107,12 @@ contract KyberUniArb is Ownable {
           if(toExchange == uint(Exchanges.KYBER)) {
             secondTradeAmount = _tokenToTokenKyber(toToken, fromToken, firstTradeAmount);
           } else if(toExchange == uint(Exchanges.UNISWAPV2)) {
-            secondTradeAmount = _tokenToTokenUniswapV2(toToken, firstTradeAmount, fromToken, tradeAmount/3, block.timestamp);
+            secondTradeAmount = _tokenToTokenUniswapV2(toToken, firstTradeAmount, fromToken, block.timestamp);
           } else {
             require(false, "No secondary exchange specified");
           }
 
-          require(secondTradeAmount > firstTradeAmount, "No Profit");
+          //require(secondTradeAmount > firstTradeAmount, "No Profit");
 
         // Transfer back to sender
           IERC20 token = IERC20(fromToken);

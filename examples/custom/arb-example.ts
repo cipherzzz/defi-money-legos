@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 const { legos } = require('@studydefi/money-legos');
-const { parseEther, parseUnits } = ethers.utils;
+const { parseEther, parseUnits, formatUnits } = ethers.utils;
 
 require('dotenv').config();
 
@@ -36,7 +36,10 @@ async function executeArb(
   tokenAmount: any
 ) {
   
-  await DAI.approve(arbContract.address, tokenAmount);
+  let daiBalance = await DAI.balanceOf(wallet.address);
+  console.log("daiBalance before: ", formatUnits(daiBalance, 18));
+  
+  await DAI.approve(arbContract.address, tokenAmount.mul(4));
   await BAT.approve(arbContract.address, tokenAmount.mul(4));
   const tx = await arbContract.executeArbitrage(
     fromToken,
@@ -48,7 +51,10 @@ async function executeArb(
   );
   const receipt = await tx.wait();
   console.log('Arb Tx Hash: ', receipt.transactionHash);
+  
+  daiBalance = await DAI.balanceOf(wallet.address);
+  console.log("daiBalance after: ", formatUnits(daiBalance, 18));
 }
 
-const tokenAmount = '10';
+const tokenAmount = '1';
 executeArb(legos.erc20.dai.address, legos.erc20.bat.address, 0, 1, parseEther(tokenAmount));
