@@ -83,25 +83,28 @@ async function init() {
     [
       'function swapTokensForExactTokens(uint amountOut, uint amountIn, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)',
       'function getAmountsOut(uint256 amountIn, address[] calldata path) external view returns (uint256[] memory amounts)',
+      'function addLiquidity(address tokenA, address tokenB, uint amountADesired, uint amountBDesired, uint amountAMin, uint amountBMin, address to, uint deadline) external returns (uint amountA, uint amountB, uint liquidity)',
     ],
     account
   );
 
   kyber = new ethers.Contract(legos.kyber.network.address, legos.kyber.network.abi, account);
-
-  BAT = new ethers.Contract(legos.erc20.bat.address, legos.erc20.bat.abi, account);
-  DAI = new ethers.Contract(legos.erc20.dai.address, legos.erc20.dai.abi, account);
 }
 
 async function executeArb(tokenIn, amtIn, tokenOut) {
-  init();
   const amountIn = parseUnits(amtIn, 18);
-  let amtBefore = await DAI.balanceOf(account.address);
-  const amountOutUni = await swapTokensOnUniswapV2(DAI, amountIn, BAT);
-  const amountOutKyber = await swapTokensOnKyber(BAT, amountOutUni, DAI);
+
+  let inputContract = new ethers.Contract(tokenIn.address, tokenIn.abi, account);
+  let outputContract = new ethers.Contract(tokenOut.address, tokenOut.abi, account);
+
+  let amtBefore = await inputContract.balanceOf(account.address);
+
+  const amountOutUni = await swapTokensOnUniswapV2(inputContract, amountIn, outputContract);
+  const amountOutKyber = await swapTokensOnKyber(outputContract, amountOutUni, inputContract);
 
   console.log(`Amount ${tokenIn.address} In:', ${formatUnits(amountIn, 18)}`);
   console.log(`Amount ${tokenIn.address} Out:', ${formatUnits(amountOutKyber, 18)}`);
 }
 
- executeArb(legos.erc20.dai, '100', legos.erc20.bat); // The more you run this on a forked network the worse your rate will be
+init();
+executeArb(legos.erc20.dai, '100', legos.erc20.bat); // The more you run this on a forked network the worse your rate will be
