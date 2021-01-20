@@ -93,15 +93,15 @@ async function init() {
   DAI = new ethers.Contract(legos.erc20.dai.address, legos.erc20.dai.abi, account);
 }
 
-async function executeArb() {
+async function executeArb(tokenIn, amtIn, tokenOut) {
   init();
-  const amountIn = parseUnits('100', 18);
+  const amountIn = parseUnits(amtIn, 18);
   let amtBefore = await DAI.balanceOf(account.address);
   const amountOutUni = await swapTokensOnUniswapV2(DAI, amountIn, BAT);
   const amountOutKyber = await swapTokensOnKyber(BAT, amountOutUni, DAI);
 
-  console.log('Amount In:', formatUnits(amountIn, 18));
-  console.log('Amount Out:', formatUnits(amountOutKyber, 18));
+  console.log(`Amount ${tokenIn.address} In:', ${formatUnits(amountIn, 18)}`);
+  console.log(`Amount ${tokenIn.address} Out:', ${formatUnits(amountOutKyber, 18)}`);
 }
 
-executeArb();
+ executeArb(legos.erc20.dai, '100', legos.erc20.bat); // The more you run this on a forked network the worse your rate will be
