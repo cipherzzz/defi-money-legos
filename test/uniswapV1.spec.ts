@@ -9,7 +9,7 @@ describe('UniswapV1', async function () {
     expect(Number(amtBefore)).to.gt(Number(daiAmountIn.mul(parseUnits('10', 0))));
   });
 
-  it('swaps Eth for Dai', async function () {
+  it('Should swap Eth for Dai', async function () {
     //dai balance before
     const daiBalanceBefore = await DAI.balanceOf(wallet.address);
 

@@ -1,4 +1,4 @@
-import { expect, kyber, legos, parseUnits, Contract, wallet, DAI, GAS_LIMIT } from './setup';
+import { expect, kyber, legos, parseUnits, wallet, DAI, GAS_LIMIT } from './setup';
 
 describe('KyberSwap', async function () {
   const daiAmountIn = parseUnits('10', legos.erc20.dai.decimals);
@@ -8,7 +8,7 @@ describe('KyberSwap', async function () {
     expect(Number(amtBefore)).to.gt(Number(daiAmountIn.mul(parseUnits('10', 0))));
   });
 
-  it('swaps Eth for Dai', async function () {
+  it('Should swap Eth for Dai', async function () {
     //dai balance before
     const daiBalanceBefore = await DAI.balanceOf(wallet.address);
 
