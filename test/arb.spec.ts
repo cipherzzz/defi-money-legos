@@ -29,7 +29,7 @@ describe('Arbitrage', async function () {
     let amtBefore = await DAI.balanceOf(wallet.address);
     expect(Number(amtBefore)).to.gt(Number(daiAmountIn.mul(parseUnits('10', 0))));
   });
-  
+
   it('We should have sufficient BAT balances', async function () {
     let amtBefore = await BAT.balanceOf(wallet.address);
     expect(Number(amtBefore)).to.gt(Number(batAmountIn.mul(parseUnits('10', 0))));
@@ -47,9 +47,9 @@ describe('Arbitrage', async function () {
     const amountOutKyber = await swapTokensOnKyber(BAT, amountOutUni, DAI, kyber, wallet);
     expect(amountOutKyber).to.exist; // Can't really test arbitrage performance
   });
-  
+
   it('Should arbitrage between Kyber and UniswapV2 with BAT => DAI => BAT', async function () {
-      const amountOutKyber = await swapTokensOnKyber(BAT, batAmountIn, DAI, kyber, wallet);
+    const amountOutKyber = await swapTokensOnKyber(BAT, batAmountIn, DAI, kyber, wallet);
     const amountOutUni = await swapTokensOnUniswapV2(
       BAT,
       amountOutKyber,
@@ -58,7 +58,7 @@ describe('Arbitrage', async function () {
       wallet,
       deadline
     );
-    
+
     expect(amountOutUni).to.exist; // Can't really test arbitrage performance
   });
 });

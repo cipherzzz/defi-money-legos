@@ -1,7 +1,6 @@
 import { expect, kyber, legos, parseUnits, formatUnits, Contract, wallet, DAI, BAT } from './setup';
 
 describe('Liquidity', async function () {
-  
   const daiAmountIn = parseUnits('10', legos.erc20.dai.decimals);
   let batAmountIn; // Will be set for us
   const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
@@ -20,35 +19,32 @@ describe('Liquidity', async function () {
     expect(Number(amtBefore)).to.gt(Number(daiAmountIn.mul(parseUnits('10', 0))));
   });
 
-    it('We should have sufficient BAT balances', async function () {
+  it('We should have sufficient BAT balances', async function () {
     let amtBefore = await BAT.balanceOf(wallet.address);
     expect(Number(amtBefore)).to.gt(Number(daiAmountIn.mul(parseUnits('40', 0))));
   });
 
   it('Should provide liquidity on UniswapV2 to DIE/BAT pool', async function () {
-      
     const daiBalanceBefore = await DAI.balanceOf(wallet.address);
     const batBalanceBefore = await BAT.balanceOf(wallet.address);
-    
+
     let dai_bat_liquidity_address = '0x6929abD7931D0243777d3CD147fE863646A752ba';
     let liquidityToken = new Contract(dai_bat_liquidity_address, legos.erc20.abi, wallet);
     const liquidityBalanceBefore = await liquidityToken.balanceOf(wallet.address);
-    
+
     await addLiquidityUniswapV2(DAI, BAT, daiAmountIn, uniswap, deadline, wallet);
-    
+
     const daiBalanceAfter = await DAI.balanceOf(wallet.address);
     const batBalanceAfter = await BAT.balanceOf(wallet.address);
     const liquidityBalanceAfter = await liquidityToken.balanceOf(wallet.address);
-    
+
     expect(Number(daiBalanceBefore)).to.gt(Number(daiBalanceAfter));
     expect(Number(batBalanceBefore)).to.gt(Number(batBalanceAfter));
     expect(Number(liquidityBalanceAfter)).to.gt(Number(liquidityBalanceBefore));
-    
   });
 });
 
 async function addLiquidityUniswapV2(tokenA, tokenB, desiredAmtTokenA, uniswap, deadline, wallet) {
-
   const path = [tokenA.address, tokenB.address];
   const amounts = await uniswap.getAmountsOut(desiredAmtTokenA, path);
   const desiredAmtB = amounts[1];
