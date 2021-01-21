@@ -1,8 +1,9 @@
-import { expect, kyber, legos, parseUnits, Contract, wallet, DAI, GAS_LIMIT } from './setup';
+import { expect, uniswapV1, legos, parseUnits, wallet, DAI, GAS_LIMIT } from './setup';
 
-describe('KyberSwap', async function () {
-  const daiAmountIn = parseUnits('10', legos.erc20.dai.decimals);
+const gasLimit = process.env.GAS_LIMIT;
+const daiAmountIn = parseUnits('10', legos.erc20.dai.decimals);
 
+describe('UniswapV1', async function () {
   it('We should have sufficient DAI balances', async function () {
     let amtBefore = await DAI.balanceOf(wallet.address);
     expect(Number(amtBefore)).to.gt(Number(daiAmountIn.mul(parseUnits('10', 0))));
@@ -12,7 +13,7 @@ describe('KyberSwap', async function () {
     //dai balance before
     const daiBalanceBefore = await DAI.balanceOf(wallet.address);
 
-    let tx = await kyber.ethToToken(legos.erc20.dai.address, {
+    let tx = await uniswapV1.ethToToken(legos.erc20.dai.address, {
       value: parseUnits('.1', legos.erc20.decimals),
       gasLimit: GAS_LIMIT,
     });

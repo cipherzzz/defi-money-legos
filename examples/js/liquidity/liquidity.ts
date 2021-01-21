@@ -34,25 +34,20 @@ async function init() {
   kyber = new ethers.Contract(legos.kyber.network.address, legos.kyber.network.abi, account);
 }
 
-
-async function addLiquidityUniswapV2(
-  tokenA,
-  tokenB,
-  desiredAmtTokenA
-) {
+async function addLiquidityUniswapV2(tokenA, tokenB, desiredAmtTokenA) {
   let tokenAContract = new ethers.Contract(tokenA.address, tokenA.abi, account);
   let tokenBContract = new ethers.Contract(tokenB.address, tokenB.abi, account);
 
   const desiredAmtA = parseUnits(desiredAmtTokenA, tokenA.decimals);
-  
+
   const path = [tokenA.address, tokenB.address];
   const amounts = await uniswap.getAmountsOut(desiredAmtA, path);
   const desiredAmtB = amounts[1];
-  
+
   // *** very important ****
   await tokenAContract.approve(uniswap.address, desiredAmtA);
   await tokenBContract.approve(uniswap.address, desiredAmtB);
-  
+
   const minAmtA = desiredAmtA.mul(parseUnits('9', 0)).div(parseUnits('10', 0));
   const minAmtB = desiredAmtB.mul(parseUnits('9', 0)).div(parseUnits('10', 0));
 
@@ -71,8 +66,8 @@ async function addLiquidityUniswapV2(
     }
   );
   const receipt = await tx.wait();
-  
-  let dai_bat_liquidity_address = "0x6929abD7931D0243777d3CD147fE863646A752ba";
+
+  let dai_bat_liquidity_address = '0x6929abD7931D0243777d3CD147fE863646A752ba';
   let liquidityToken = new ethers.Contract(dai_bat_liquidity_address, legos.erc20.abi, account);
   const liquidityBalance = await liquidityToken.balanceOf(address);
   console.log('Added Liquidity');
