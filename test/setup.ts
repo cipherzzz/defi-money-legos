@@ -1,7 +1,7 @@
 const { legos } = require('@studydefi/money-legos');
 const { expect } = require('chai');
-const { Contract, ethers } = require('ethers');
-const { parseEther, formatUnits, parseUnits, BigNumber } = ethers.utils;
+const { Contract, ethers, BigNumber } = require('ethers');
+const { parseEther, formatUnits, parseUnits } = ethers.utils;
 
 require('dotenv').config();
 
